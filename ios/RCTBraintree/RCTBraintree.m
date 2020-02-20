@@ -40,29 +40,21 @@
 
 RCT_EXPORT_MODULE();
 
-RCT_EXPORT_METHOD(setupWithURLScheme:(NSString *)serverUrl
+RCT_EXPORT_METHOD(setupWithURLScheme:(NSString *)clientToken
                   urlscheme:(NSString*)urlscheme
                   callback:(RCTResponseSenderBlock)callback)
 {
     self.URLScheme = urlscheme;
     [BTAppSwitch setReturnURLScheme:urlscheme];
 
-    NSURL *clientTokenURL = [NSURL URLWithString:serverUrl];
-    NSMutableURLRequest *clientTokenRequest = [NSMutableURLRequest requestWithURL:clientTokenURL];
-    [clientTokenRequest setValue:@"text/plain" forHTTPHeaderField:@"Accept"];
+    self.braintreeClient = [[BTAPIClient alloc] initWithAuthorization:clientToken];
 
-    [[[NSURLSession sharedSession] dataTaskWithRequest:clientTokenRequest
-                                     completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-        NSString *clientToken = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-        self.braintreeClient = [[BTAPIClient alloc] initWithAuthorization:clientToken];
-
-        if (self.braintreeClient == nil) {
-            callback(@[@(NO)]);
-        }
-        else {
-            callback(@[@(YES)]);
-        }
-    }] resume];
+    if (self.braintreeClient == nil) {
+        callback(@[@(NO)]);
+    }
+    else {
+        callback(@[@(YES)]);
+    }
 }
 
 
