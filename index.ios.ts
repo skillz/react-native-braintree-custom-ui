@@ -35,9 +35,9 @@ class Braintree {
     });
   }
 
-  getPayPalOneTimePaymentNonce(amount: number): Promise<PayPalSuccess> {
+  getPayPalOneTimePaymentNonce(amount: number, currencyCode: string): Promise<PayPalSuccess> {
     return new Promise((resolve: (result: PayPalSuccess)=>void, reject: (reason: string | null)=>void) => {
-      RCTBraintree.payPalRequestOneTimePayment(amount, (err: string | null, nonce: string | null, email: string | null, firstName: string | null, lastName: string | null, billingAddress: Address | null, shippingAddress: Address | null) => {
+      RCTBraintree.payPalRequestOneTimePayment(amount, currencyCode, (err: string | null, nonce: string | null, email: string | null, firstName: string | null, lastName: string | null, billingAddress: Address | null, shippingAddress: Address | null) => {
         if (nonce) {
           resolve({
             nonce,
@@ -54,9 +54,9 @@ class Braintree {
     });
   }
 
-  getPayPalBillingAgreementNonce(amount: number): Promise<PayPalSuccess> {
+  getPayPalBillingAgreementNonce(amount: number, currencyCode: string): Promise<PayPalSuccess> {
     return new Promise((resolve: (result: PayPalSuccess)=>void, reject: (reason: string | null)=>void) => {
-      RCTBraintree.payPalRequestBillingAgreement(amount, (err: string | null, nonce: string | null, email: string | null, firstName: string | null, lastName: string | null, billingAddress: Address | null, shippingAddress: Address | null) => {
+      RCTBraintree.payPalRequestBillingAgreement(amount, currencyCode, (err: string | null, nonce: string | null, email: string | null, firstName: string | null, lastName: string | null, billingAddress: Address | null, shippingAddress: Address | null) => {
         if (nonce) {
           resolve({
             nonce,
