@@ -11,7 +11,6 @@
 #import <React/RCTUtils.h>
 #import <React/RCTConvert.h>
 
-#import "BraintreePaymentFlow.h"
 #import "BraintreeCore.h"
 #import "BraintreePayPal.h"
 #import "BraintreeCard.h"
@@ -19,7 +18,7 @@
 #import "PPDataCollector.h"
 
 @interface RCTBraintree : UIViewController <RCTBridgeModule, BTViewControllerPresentingDelegate>
-@property (nonatomic, strong, readwrite) BTPaymentFlowDriver *paymentFlowDriver;
+
 @property (nonatomic, strong) BTAPIClient *braintreeClient;
 @property (nonatomic, strong) UIViewController *reactRoot;
 @property (nonatomic, strong) BTDataCollector *dataCollector;
@@ -27,8 +26,9 @@
 @property (nonatomic, strong) RCTResponseSenderBlock callback;
 
 + (instancetype)sharedInstance;
+
 - (BOOL)application:(UIApplication *)application
             openURL:(NSURL *)url
-            options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *) options;
-- (void) run3DSecureCheck: (NSDictionary *)parameters callback: (RCTResponseSenderBlock)callback;
+            options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options;
+
 @end
