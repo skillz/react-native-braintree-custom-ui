@@ -12,6 +12,7 @@ import com.braintreepayments.api.interfaces.BraintreeCancelListener;
 import com.braintreepayments.api.interfaces.BraintreeErrorListener;
 import com.braintreepayments.api.interfaces.PaymentMethodNonceCreatedListener;
 import com.braintreepayments.api.models.CardBuilder;
+import com.braintreepayments.api.models.PayPalAccountNonce;
 import com.braintreepayments.api.models.PayPalRequest;
 import com.braintreepayments.api.models.PaymentMethodNonce;
 import com.facebook.react.bridge.Callback;
@@ -24,14 +25,8 @@ import com.google.gson.GsonBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
-
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 public class Braintree extends ReactContextBaseJavaModule {
     private String token;
@@ -59,30 +54,10 @@ public class Braintree extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void setup(final String url, final Callback successCallback, final Callback errorCallback) {
+    public void setup(final String token, final Callback successCallback, final Callback errorCallback) {
         try {
-            OkHttpClient client = new OkHttpClient.Builder()
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .writeTimeout(30, TimeUnit.SECONDS)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .build();
-            Request request = new Request.Builder()
-                    .url(url)
-                    .build();
-
-            Response response = client.newCall(request).execute();
-            ResponseBody responseBody = response.body();
-            if (responseBody == null) {
-                errorCallback.invoke("BRAINTREE_SETUP_EMPTY_RESPONSE_BODY");
-                return;
-            }
-
-            if (getCurrentActivity() == null) {
-                errorCallback.invoke("BRAINTREE_SETUP_NULL_ACTIVITY");
-                return;
-            }
-
-            this.mBraintreeFragment = BraintreeFragment.newInstance((AppCompatActivity) getCurrentActivity(), responseBody.string());
+            this.setToken(token);
+            this.mBraintreeFragment = BraintreeFragment.newInstance((AppCompatActivity) getCurrentActivity(), getToken());
         } catch (Exception e) {
             errorCallback.invoke(e.getMessage());
         }
@@ -94,10 +69,15 @@ public class Braintree extends ReactContextBaseJavaModule {
                     nonceErrorCallback("USER_CANCELLATION");
                 }
             });
+
             this.mBraintreeFragment.addListener(new PaymentMethodNonceCreatedListener() {
                 @Override
                 public void onPaymentMethodNonceCreated(PaymentMethodNonce paymentMethodNonce) {
-                    nonceCallback(paymentMethodNonce.getNonce());
+                    if (paymentMethodNonce instanceof PayPalAccountNonce) {
+                        payPalNonceCallback((PayPalAccountNonce)paymentMethodNonce);
+                    } else {
+                        nonceCallback(paymentMethodNonce.getNonce());
+                    }
                 }
             });
 
@@ -138,8 +118,7 @@ public class Braintree extends ReactContextBaseJavaModule {
                     }
                 }
             });
-            this.setToken(token);
-            successCallback.invoke(this.getToken());
+            successCallback.invoke();
         }
     }
 
@@ -206,6 +185,10 @@ public class Braintree extends ReactContextBaseJavaModule {
         if (parameters.hasKey("extendedAddress")) {
             cardBuilder.extendedAddress(parameters.getString("extendedAddress"));
         }
+    }
+
+    private void payPalNonceCallback(PayPalAccountNonce payPalAccountNonce) {
+        this.successCallback.invoke(payPalAccountNonce);
     }
 
     private void nonceCallback(String nonce) {
