@@ -27,9 +27,9 @@ export type Address = {
 export type DeviceData = string;
 
 class Braintree {
-  setup(clientToken: string, urlscheme: string): Promise<boolean> {
+  setup(clientToken: string): Promise<boolean> {
     return new Promise((resolve: (result: boolean)=>void, reject: (reason: string)=>void) => {
-      RCTBraintree.setupWithURLScheme(clientToken, urlscheme, (success: boolean) => {
+      RCTBraintree.setupWithClientToken(clientToken, (success: boolean) => {
         success ? resolve(true) : reject('Invalid Token');
       });
     });

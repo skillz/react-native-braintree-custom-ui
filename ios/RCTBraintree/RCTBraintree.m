@@ -7,6 +7,7 @@
 //
 
 #import "RCTBraintree.h"
+#import "Skillz+DeepLinking.h"
 
 @interface RCTBraintree ()
 
@@ -40,12 +41,11 @@
 
 RCT_EXPORT_MODULE();
 
-RCT_EXPORT_METHOD(setupWithURLScheme:(NSString *)clientToken
-                  urlscheme:(NSString*)urlscheme
+RCT_EXPORT_METHOD(setupWithClientToken:(NSString *)clientToken
                   callback:(RCTResponseSenderBlock)callback)
 {
-    self.URLScheme = urlscheme;
-    [BTAppSwitch setReturnURLScheme:urlscheme];
+    self.URLScheme = [[Skillz skillzInstance] getPaymentsDeepLinkURLScheme];
+    [BTAppSwitch setReturnURLScheme:self.URLScheme];
 
     self.braintreeClient = [[BTAPIClient alloc] initWithAuthorization:clientToken];
 
