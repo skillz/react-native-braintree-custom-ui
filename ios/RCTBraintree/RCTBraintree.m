@@ -59,13 +59,14 @@ RCT_EXPORT_METHOD(setupWithURLScheme:(NSString *)clientToken
 
 
 RCT_EXPORT_METHOD(payPalRequestOneTimePayment:(NSString *)amount
+                  currencyCode:(NSString *) currencyCode
                   callback:(RCTResponseSenderBlock) callback)
 {
     dispatch_async(dispatch_get_main_queue(), ^{
         BTPayPalDriver *payPalDriver = [[BTPayPalDriver alloc] initWithAPIClient:self.braintreeClient];
         payPalDriver.viewControllerPresentingDelegate = self;
         BTPayPalRequest *request = [[BTPayPalRequest alloc] initWithAmount:amount];
-        request.currencyCode = @"EUR"; // Optional; see BTPayPalRequest.h for other options
+        request.currencyCode = currencyCode; // Optional; see BTPayPalRequest.h for other options
 
         [payPalDriver requestOneTimePayment:request
                                  completion:^(BTPayPalAccountNonce * _Nullable tokenizedPayPalAccount, NSError * _Nullable error) {
@@ -75,13 +76,14 @@ RCT_EXPORT_METHOD(payPalRequestOneTimePayment:(NSString *)amount
 }
 
 RCT_EXPORT_METHOD(payPalRequestBillingAgreement:(NSString *)amount
+                  currencyCode:(NSString *) currencyCode
                   callback:(RCTResponseSenderBlock) callback)
 {
     dispatch_async(dispatch_get_main_queue(), ^{
         BTPayPalDriver *payPalDriver = [[BTPayPalDriver alloc] initWithAPIClient:self.braintreeClient];
         payPalDriver.viewControllerPresentingDelegate = self;
         BTPayPalRequest *request = [[BTPayPalRequest alloc] initWithAmount:amount];
-        request.currencyCode = @"EUR"; // Optional; see BTPayPalRequest.h for other options
+        request.currencyCode = currencyCode; // Optional; see BTPayPalRequest.h for other options
 
         [payPalDriver requestBillingAgreement:request
                                    completion:^(BTPayPalAccountNonce * _Nullable tokenizedPayPalAccount, NSError * _Nullable error) {
