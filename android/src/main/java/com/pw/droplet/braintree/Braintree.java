@@ -53,71 +53,32 @@ public class Braintree extends ReactContextBaseJavaModule {
         this.token = token;
     }
 
+    private void cleanupBraintreeFragment() {
+        if (this.mBraintreeFragment == null) {
+            return;
+        }
+
+        this.mBraintreeFragment.removeListener(mCancelListener);
+        this.mBraintreeFragment.removeListener(mPaymentNonceCreatedListner);
+        this.mBraintreeFragment.removeListener(mErrorListener);
+        this.mBraintreeFragment = null;
+    }
+
     @ReactMethod
     public void setup(final String token, final Callback successCallback, final Callback errorCallback) {
+        this.cleanupBraintreeFragment();
         try {
             this.setToken(token);
             this.mBraintreeFragment = BraintreeFragment.newInstance((AppCompatActivity) getCurrentActivity(), getToken());
         } catch (Exception e) {
             errorCallback.invoke(e.getMessage());
+            return;
         }
 
         if (this.mBraintreeFragment != null) {
-            this.mBraintreeFragment.addListener(new BraintreeCancelListener() {
-                @Override
-                public void onCancel(int requestCode) {
-                    nonceErrorCallback("USER_CANCELLATION");
-                }
-            });
-
-            this.mBraintreeFragment.addListener(new PaymentMethodNonceCreatedListener() {
-                @Override
-                public void onPaymentMethodNonceCreated(PaymentMethodNonce paymentMethodNonce) {
-                    if (paymentMethodNonce instanceof PayPalAccountNonce) {
-                        payPalNonceCallback((PayPalAccountNonce)paymentMethodNonce);
-                    } else {
-                        nonceCallback(paymentMethodNonce.getNonce());
-                    }
-                }
-            });
-
-            this.mBraintreeFragment.addListener(new BraintreeErrorListener() {
-                @Override
-                public void onError(Exception error) {
-                    if (error instanceof ErrorWithResponse) {
-                        ErrorWithResponse errorWithResponse = (ErrorWithResponse) error;
-                        BraintreeError cardErrors = errorWithResponse.errorFor("creditCard");
-                        if (cardErrors != null) {
-                            Gson gson = new GsonBuilder().create();
-                            final Map<String, String> errors = new HashMap<>();
-                            BraintreeError numberError = cardErrors.errorFor("number");
-                            BraintreeError cvvError = cardErrors.errorFor("cvv");
-                            BraintreeError expirationDateError = cardErrors.errorFor("expirationDate");
-                            BraintreeError postalCode = cardErrors.errorFor("postalCode");
-
-                            if (numberError != null && numberError.getMessage() != null) {
-                                errors.put("card_number", numberError.getMessage());
-                            }
-
-                            if (cvvError != null && cvvError.getMessage() != null) {
-                                errors.put("cvv", cvvError.getMessage());
-                            }
-
-                            if (expirationDateError != null && expirationDateError.getMessage() != null) {
-                                errors.put("expiration_date", expirationDateError.getMessage());
-                            }
-
-                            if (postalCode != null && postalCode.getMessage() != null) {
-                                errors.put("postal_code", postalCode.getMessage());
-                            }
-
-                            nonceErrorCallback(gson.toJson(errors));
-                        } else {
-                            nonceErrorCallback(errorWithResponse.getErrorResponse());
-                        }
-                    }
-                }
-            });
+            this.mBraintreeFragment.addListener(mCancelListener);
+            this.mBraintreeFragment.addListener(mPaymentNonceCreatedListner);
+            this.mBraintreeFragment.addListener(mErrorListener);
             successCallback.invoke();
         }
     }
@@ -219,4 +180,60 @@ public class Braintree extends ReactContextBaseJavaModule {
 
     public void onNewIntent(Intent intent) {
     }
+
+    private BraintreeCancelListener mCancelListener = new BraintreeCancelListener() {
+        @Override
+        public void onCancel(int requestCode) {
+            nonceErrorCallback("USER_CANCELLATION");
+        }
+    };
+
+    private PaymentMethodNonceCreatedListener mPaymentNonceCreatedListner = new PaymentMethodNonceCreatedListener() {
+        @Override
+        public void onPaymentMethodNonceCreated(PaymentMethodNonce paymentMethodNonce) {
+            if (paymentMethodNonce instanceof PayPalAccountNonce) {
+                payPalNonceCallback((PayPalAccountNonce)paymentMethodNonce);
+            } else {
+                nonceCallback(paymentMethodNonce.getNonce());
+            }
+        }
+    };
+
+    private BraintreeErrorListener mErrorListener = new BraintreeErrorListener() {
+        @Override
+        public void onError(Exception error) {
+            if (error instanceof ErrorWithResponse) {
+                ErrorWithResponse errorWithResponse = (ErrorWithResponse) error;
+                BraintreeError cardErrors = errorWithResponse.errorFor("creditCard");
+                if (cardErrors != null) {
+                    Gson gson = new GsonBuilder().create();
+                    final Map<String, String> errors = new HashMap<>();
+                    BraintreeError numberError = cardErrors.errorFor("number");
+                    BraintreeError cvvError = cardErrors.errorFor("cvv");
+                    BraintreeError expirationDateError = cardErrors.errorFor("expirationDate");
+                    BraintreeError postalCode = cardErrors.errorFor("postalCode");
+
+                    if (numberError != null && numberError.getMessage() != null) {
+                        errors.put("card_number", numberError.getMessage());
+                    }
+
+                    if (cvvError != null && cvvError.getMessage() != null) {
+                        errors.put("cvv", cvvError.getMessage());
+                    }
+
+                    if (expirationDateError != null && expirationDateError.getMessage() != null) {
+                        errors.put("expiration_date", expirationDateError.getMessage());
+                    }
+
+                    if (postalCode != null && postalCode.getMessage() != null) {
+                        errors.put("postal_code", postalCode.getMessage());
+                    }
+
+                    nonceErrorCallback(gson.toJson(errors));
+                } else {
+                    nonceErrorCallback(errorWithResponse.getErrorResponse());
+                }
+            }
+        }
+    };
 }
