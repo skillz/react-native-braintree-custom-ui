@@ -66,7 +66,11 @@ class Braintree {
 
   getDeviceData(options = {}): Promise<DeviceData> {
     return new Promise((resolve: (result: DeviceData)=>void, reject:(reason: string)=>void) => {
-      reject('Not implemented yet');
+      NativeBraintree.getDeviceData(
+        options,
+        (deviceData: string) => resolve(deviceData),
+        (error: string) => reject(error)
+      );
     });
   }
 };

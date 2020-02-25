@@ -5,11 +5,13 @@ import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.braintreepayments.api.BraintreeFragment;
+import com.braintreepayments.api.DataCollector;
 import com.braintreepayments.api.PayPal;
 import com.braintreepayments.api.exceptions.BraintreeError;
 import com.braintreepayments.api.exceptions.ErrorWithResponse;
 import com.braintreepayments.api.interfaces.BraintreeCancelListener;
 import com.braintreepayments.api.interfaces.BraintreeErrorListener;
+import com.braintreepayments.api.interfaces.BraintreeResponseListener;
 import com.braintreepayments.api.interfaces.PaymentMethodNonceCreatedListener;
 import com.braintreepayments.api.models.CardBuilder;
 import com.braintreepayments.api.models.PayPalAccountNonce;
@@ -168,6 +170,34 @@ public class Braintree extends ReactContextBaseJavaModule {
     @ReactMethod
     public void payPalRequestBillingAgreement(final String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
         PayPal.requestBillingAgreement(this.mBraintreeFragment, getPayPalRequest(amount, currencyCode, successCallback, errorCallback));
+    }
+
+    @ReactMethod
+    public void getDeviceData(final ReadableMap options, final Callback successCallback, final Callback errorCallback) {
+        final String collectorType = options.hasKey("dataCollector") ? options.getString("dataCollector") : null;
+
+        final BraintreeResponseListener<String> listener = new BraintreeResponseListener<String>() {
+            @Override
+            public void onResponse(String deviceData) {
+                successCallback.invoke(deviceData);
+            }
+        };
+
+        if (collectorType != null) {
+            switch (collectorType) {
+                case "card":
+                case "both":
+                    DataCollector.collectDeviceData(this.mBraintreeFragment, listener);
+                    break;
+                case "paypal":
+                    DataCollector.collectPayPalDeviceData(this.mBraintreeFragment, listener);
+                    break;
+                default:
+                    errorCallback.invoke("Invalid data collector");
+            }
+        } else {
+            errorCallback.invoke("Invalid data collector");
+        }
     }
 
     private PayPalRequest getPayPalRequest(final String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
