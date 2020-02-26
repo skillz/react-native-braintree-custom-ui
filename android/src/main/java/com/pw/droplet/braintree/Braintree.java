@@ -17,11 +17,14 @@ import com.braintreepayments.api.models.CardBuilder;
 import com.braintreepayments.api.models.PayPalAccountNonce;
 import com.braintreepayments.api.models.PayPalRequest;
 import com.braintreepayments.api.models.PaymentMethodNonce;
+import com.braintreepayments.api.models.PostalAddress;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.WritableNativeMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -150,18 +153,6 @@ public class Braintree extends ReactContextBaseJavaModule {
         }
     }
 
-    private void payPalNonceCallback(PayPalAccountNonce payPalAccountNonce) {
-        this.successCallback.invoke(payPalAccountNonce);
-    }
-
-    private void nonceCallback(String nonce) {
-        this.successCallback.invoke(nonce);
-    }
-
-    private void nonceErrorCallback(String error) {
-        this.errorCallback.invoke(error);
-    }
-
     @ReactMethod
     public void payPalRequestOneTimePayment(final String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
         PayPal.requestOneTimePayment(this.mBraintreeFragment, getPayPalRequest(amount, currencyCode, successCallback, errorCallback));
@@ -200,6 +191,31 @@ public class Braintree extends ReactContextBaseJavaModule {
         }
     }
 
+    private void payPalNonceCallback(PayPalAccountNonce payPalAccountNonce) {
+        WritableNativeMap map = new WritableNativeMap();
+        map.putString("nonce", payPalAccountNonce.getNonce());
+        map.putString("firstName", payPalAccountNonce.getFirstName());
+        map.putString("lastName", payPalAccountNonce.getLastName());
+
+        if (payPalAccountNonce.getBillingAddress() != null) {
+            map.putMap("billingAddress", getPayPalAddressMap(payPalAccountNonce.getBillingAddress()));
+        }
+
+        if (payPalAccountNonce.getShippingAddress() != null) {
+            map.putMap("shippingAddress", getPayPalAddressMap(payPalAccountNonce.getShippingAddress()));
+        }
+
+        this.successCallback.invoke(map);
+    }
+
+    private void nonceCallback(String nonce) {
+        this.successCallback.invoke(nonce);
+    }
+
+    private void nonceErrorCallback(String error) {
+        this.errorCallback.invoke(error);
+    }
+
     private PayPalRequest getPayPalRequest(final String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
         this.successCallback = successCallback;
         this.errorCallback = errorCallback;
@@ -208,7 +224,16 @@ public class Braintree extends ReactContextBaseJavaModule {
                 .intent(PayPalRequest.INTENT_AUTHORIZE);
     }
 
-    public void onNewIntent(Intent intent) {
+    private WritableMap getPayPalAddressMap(PostalAddress address) {
+        WritableNativeMap map = new WritableNativeMap();
+        map.putString("recipientName", address.getRecipientName());
+        map.putString("streetAddress", address.getStreetAddress());
+        map.putString("extendedAddress", address.getExtendedAddress());
+        map.putString("locality", address.getLocality());
+        map.putString("countryCodeAlpha2", address.getCountryCodeAlpha2());
+        map.putString("postalCode", address.getPostalCode());
+        map.putString("region", address.getRegion());
+        return map;
     }
 
     private BraintreeCancelListener mCancelListener = new BraintreeCancelListener() {
