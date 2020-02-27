@@ -5,6 +5,7 @@ import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.braintreepayments.api.BraintreeFragment;
+import com.braintreepayments.api.Card;
 import com.braintreepayments.api.DataCollector;
 import com.braintreepayments.api.PayPal;
 import com.braintreepayments.api.exceptions.BraintreeError;
@@ -64,7 +65,7 @@ public class Braintree extends ReactContextBaseJavaModule {
         }
 
         this.mBraintreeFragment.removeListener(mCancelListener);
-        this.mBraintreeFragment.removeListener(mPaymentNonceCreatedListner);
+        this.mBraintreeFragment.removeListener(mPaymentNonceCreatedListener);
         this.mBraintreeFragment.removeListener(mErrorListener);
         this.mBraintreeFragment = null;
     }
@@ -82,7 +83,7 @@ public class Braintree extends ReactContextBaseJavaModule {
 
         if (this.mBraintreeFragment != null) {
             this.mBraintreeFragment.addListener(mCancelListener);
-            this.mBraintreeFragment.addListener(mPaymentNonceCreatedListner);
+            this.mBraintreeFragment.addListener(mPaymentNonceCreatedListener);
             this.mBraintreeFragment.addListener(mErrorListener);
             successCallback.invoke();
         }
@@ -151,6 +152,8 @@ public class Braintree extends ReactContextBaseJavaModule {
         if (parameters.hasKey("extendedAddress")) {
             cardBuilder.extendedAddress(parameters.getString("extendedAddress"));
         }
+
+        Card.tokenize(this.mBraintreeFragment, cardBuilder);
     }
 
     @ReactMethod
@@ -243,7 +246,7 @@ public class Braintree extends ReactContextBaseJavaModule {
         }
     };
 
-    private PaymentMethodNonceCreatedListener mPaymentNonceCreatedListner = new PaymentMethodNonceCreatedListener() {
+    private PaymentMethodNonceCreatedListener mPaymentNonceCreatedListener = new PaymentMethodNonceCreatedListener() {
         @Override
         public void onPaymentMethodNonceCreated(PaymentMethodNonce paymentMethodNonce) {
             if (paymentMethodNonce instanceof PayPalAccountNonce) {
