@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class Braintree extends ReactContextBaseJavaModule {
     private String token;
@@ -160,7 +161,7 @@ public class Braintree extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void payPalRequestBillingAgreement(final String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
-        PayPal.requestBillingAgreement(this.mBraintreeFragment, getPayPalRequest(amount, currencyCode, successCallback, errorCallback));
+        PayPal.requestBillingAgreement(this.mBraintreeFragment, getPayPalRequest(null, currencyCode, successCallback, errorCallback));
     }
 
     @ReactMethod
@@ -216,10 +217,11 @@ public class Braintree extends ReactContextBaseJavaModule {
         this.errorCallback.invoke(error);
     }
 
-    private PayPalRequest getPayPalRequest(final String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
+    private PayPalRequest getPayPalRequest(final @Nullable String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
         this.successCallback = successCallback;
         this.errorCallback = errorCallback;
-        return new PayPalRequest(amount)
+        PayPalRequest request = amount != null ? new PayPalRequest(amount) : new PayPalRequest();
+        return request
                 .currencyCode(currencyCode)
                 .intent(PayPalRequest.INTENT_AUTHORIZE);
     }
@@ -288,6 +290,8 @@ public class Braintree extends ReactContextBaseJavaModule {
                 } else {
                     nonceErrorCallback(errorWithResponse.getErrorResponse());
                 }
+            } else {
+                nonceErrorCallback(error.toString());
             }
         }
     };
