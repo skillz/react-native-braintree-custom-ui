@@ -121,6 +121,8 @@ RCT_EXPORT_METHOD(payPalRequestBillingAgreement:(NSString *)amount
         }
     } else if ( error != nil ) {
         args = @[error.description, [NSNull null]];
+    } else { // per braintree docs, if both error and token are nil, user cancelled
+        args = @[@"USER_CANCELLATION", [NSNull null]];
     }
 
     callback(args);
