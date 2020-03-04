@@ -133,11 +133,9 @@ RCT_EXPORT_METHOD(getCardNonce:(NSDictionary *)params
 {
     NSMutableDictionary *parameters = [params mutableCopy];
     BTCardClient *cardClient = [[BTCardClient alloc] initWithAPIClient:self.braintreeClient];
-    BTCard *card = [[BTCard alloc] initWithNumber:parameters[@"number"]
-                                  expirationMonth:parameters[@"expirationMonth"]
-                                   expirationYear:parameters[@"expirationYear"]
-                                              cvv:parameters[@"cvv"]];
-    card.shouldValidate = NO;
+
+    BTCard *card = [self createCardWithParameters:parameters];
+
     [cardClient tokenizeCard:card
                   completion:^(BTCardNonce *tokenizedCard, NSError *error) {
         if (error == nil) {
@@ -163,6 +161,52 @@ RCT_EXPORT_METHOD(getCardNonce:(NSDictionary *)params
         }
         callback(args);
     }];
+}
+
+- (BTCard*)createCardWithParameters:(NSMutableDictionary*)parameters
+{
+    BTCard *card = [[BTCard alloc] initWithNumber:parameters[@"number"]
+                                  expirationMonth:parameters[@"expirationMonth"]
+                                   expirationYear:parameters[@"expirationYear"]
+                                              cvv:parameters[@"cvv"]];
+
+    card.postalCode = parameters[@"postalCode"];
+
+    if (parameters[@"cardholderName"] != nil) {
+        card.cardholderName = parameters[@"cardholderName"];
+    }
+
+    if (parameters[@"firstName"] != nil) {
+        card.firstName = parameters[@"firstName"];
+    }
+
+    if (parameters[@"lastName"] != nil) {
+        card.lastName = parameters[@"lastName"];
+    }
+
+    if (parameters[@"streetAddress"] != nil) {
+        card.streetAddress = parameters[@"streetAddress"];
+    }
+
+    if (parameters[@"extendedAddress"] != nil) {
+        card.extendedAddress = parameters[@"extendedAddress"];
+    }
+
+    if (parameters[@"locality"] != nil) {
+        card.locality = parameters[@"locality"];
+    }
+
+    if (parameters[@"region"] != nil) {
+        card.region = parameters[@"region"];
+    }
+
+    if (parameters[@"countryCode"] != nil) {
+        // We always send down ISO 3-letter codes since android uses those too
+        card.countryCodeAlpha3 = parameters[@"countryCode"];
+    }
+
+    card.shouldValidate = NO;
+    return card;
 }
 
 RCT_EXPORT_METHOD(getDeviceData:(NSDictionary *)options
