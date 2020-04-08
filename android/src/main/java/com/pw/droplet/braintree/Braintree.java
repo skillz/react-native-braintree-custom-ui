@@ -1,6 +1,7 @@
 package com.pw.droplet.braintree;
 
 import android.content.Intent;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -36,6 +37,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class Braintree extends ReactContextBaseJavaModule {
+    private static final String TAG = "BraintreeRNModule";
     private String token;
 
     private Callback successCallback;
@@ -74,6 +76,7 @@ public class Braintree extends ReactContextBaseJavaModule {
     @ReactMethod
     public void setup(final String token, final Callback successCallback, final Callback errorCallback) {
         this.cleanupBraintreeFragment();
+
         try {
             this.setToken(token);
             this.mBraintreeFragment = BraintreeFragment.newInstance((AppCompatActivity) getCurrentActivity(), getToken());
@@ -213,11 +216,21 @@ public class Braintree extends ReactContextBaseJavaModule {
     }
 
     private void nonceCallback(String nonce) {
-        this.successCallback.invoke(nonce);
+        if (this.successCallback != null) {
+            this.successCallback.invoke(nonce);
+            this.successCallback = null;
+        } else {
+            Log.e(TAG, "Braintree successCallback is null!");
+        }
     }
 
     private void nonceErrorCallback(String error) {
-        this.errorCallback.invoke(error);
+        if (this.errorCallback != null) {
+            this.errorCallback.invoke(error);
+            this.errorCallback = null;
+        } else {
+            Log.e(TAG, "Braintree errorCallback is null!");
+        }
     }
 
     private PayPalRequest getPayPalRequest(final @Nullable String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
@@ -295,6 +308,7 @@ public class Braintree extends ReactContextBaseJavaModule {
                 }
             } else {
                 nonceErrorCallback(error.toString());
+                Log.e(TAG, "Unknown Braintree exception", error);
             }
         }
     };
