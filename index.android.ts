@@ -14,6 +14,15 @@ export type PayPalSuccess = {
   shippingAddress: Address | null,
 };
 
+export type GooglePaySuccess = {
+  nonce: string,
+  cardType: string,
+  email: string | null,
+  lastFour: string | null,
+  billingAddress: Address | null,
+  shippingAddress: Address | null,
+};
+
 export type Address = {
   recipientName: string | null,
   streetAddress: string | null,
@@ -31,6 +40,23 @@ class Braintree {
     return new Promise((resolve: (result: boolean)=>void, reject: (reason: string)=>void) => {
       NativeBraintree.setup(clientToken,
         () => resolve(true), 
+        (error: string) => reject(error)
+      );
+    });
+  }
+
+  checkIsGooglePayReadyToPay(): Promise<boolean> {
+    return new Promise((resolve: (result: boolean)=>void, reject: (reason: string)=>void) => {
+      NativeBraintree.googlePayIsReadyToPay(
+        (isReadyToPay: boolean) => resolve(isReadyToPay),
+        (error: string) => reject(error))
+    });
+  }
+
+  getGooglePayNonce(googlePayMerchantId: string, amount: number, currencyCode: string, isBillingAddressRequired: boolean): Promise<GooglePaySuccess> {
+    return new Promise((resolve: (result: GooglePaySuccess)=>void, reject: (reason: string)=>void) => {
+      NativeBraintree.googlePayRequestPayment(googlePayMerchantId, amount, currencyCode, isBillingAddressRequired,
+        (googlePaySuccess: GooglePaySuccess) => resolve(googlePaySuccess), 
         (error: string) => reject(error)
       );
     });
