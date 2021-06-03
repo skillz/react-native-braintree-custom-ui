@@ -210,6 +210,8 @@ public class Braintree extends ReactContextBaseJavaModule {
     private void googlePayNonceCallback(GooglePaymentCardNonce googlePayNonce) {
         if (googlePayNonce == null || googlePayNonce.getNonce() == null) {
             this.errorCallback.invoke("GooglePay nonce is null");
+            this.errorCallback = null;
+            this.successCallback = null;
             return;
         }
 
@@ -218,6 +220,8 @@ public class Braintree extends ReactContextBaseJavaModule {
 
         if (googlePayNonce.getCardType() == null) {
             this.errorCallback.invoke("GooglePay cardType is null");
+            this.errorCallback = null;
+            this.successCallback = null;
             return;
         }
         map.putString("cardType", googlePayNonce.getCardType());
@@ -239,6 +243,8 @@ public class Braintree extends ReactContextBaseJavaModule {
         }
 
         this.successCallback.invoke(map);
+        this.errorCallback = null;
+        this.successCallback = null;
     }
 
     @ReactMethod
