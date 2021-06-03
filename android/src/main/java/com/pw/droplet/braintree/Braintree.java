@@ -1,6 +1,5 @@
 package com.pw.droplet.braintree;
 
-import android.content.Intent;
 import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -8,14 +7,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.braintreepayments.api.BraintreeFragment;
 import com.braintreepayments.api.Card;
 import com.braintreepayments.api.DataCollector;
+import com.braintreepayments.api.GooglePayment;
 import com.braintreepayments.api.PayPal;
 import com.braintreepayments.api.exceptions.BraintreeError;
 import com.braintreepayments.api.exceptions.ErrorWithResponse;
 import com.braintreepayments.api.interfaces.BraintreeCancelListener;
 import com.braintreepayments.api.interfaces.BraintreeErrorListener;
 import com.braintreepayments.api.interfaces.BraintreeResponseListener;
+import com.braintreepayments.api.interfaces.ConfigurationListener;
 import com.braintreepayments.api.interfaces.PaymentMethodNonceCreatedListener;
 import com.braintreepayments.api.models.CardBuilder;
+import com.braintreepayments.api.models.Configuration;
+import com.braintreepayments.api.models.GooglePaymentCardNonce;
+import com.braintreepayments.api.models.GooglePaymentConfiguration;
+import com.braintreepayments.api.models.GooglePaymentRequest;
 import com.braintreepayments.api.models.PayPalAccountNonce;
 import com.braintreepayments.api.models.PayPalRequest;
 import com.braintreepayments.api.models.PaymentMethodNonce;
@@ -25,8 +30,9 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
+import com.google.android.gms.wallet.TransactionInfo;
+import com.google.android.gms.wallet.WalletConstants;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -86,6 +92,7 @@ public class Braintree extends ReactContextBaseJavaModule {
         }
 
         if (this.mBraintreeFragment != null) {
+            this.mBraintreeFragment.addListener(mConfigurationListener);
             this.mBraintreeFragment.addListener(mCancelListener);
             this.mBraintreeFragment.addListener(mPaymentNonceCreatedListener);
             this.mBraintreeFragment.addListener(mErrorListener);
@@ -161,6 +168,80 @@ public class Braintree extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void googlePayIsReadyToPay(final Callback successCallback, final Callback errorCallback) {
+        try {
+            GooglePayment.isReadyToPay(mBraintreeFragment, new BraintreeResponseListener<Boolean>() {
+                @Override
+                public void onResponse(Boolean isReadyToPay) {
+                    successCallback.invoke(isReadyToPay);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error calling GooglePayment.isReadyToPay", e);
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void googlePayRequestPayment(final String googlePayMerchantId, final String amount, final String currencyCode, final boolean billingAddressRequired, final Callback successCallback, final Callback errorCallback) {
+        this.successCallback = successCallback;
+        this.errorCallback = errorCallback;
+
+        GooglePaymentRequest request = new GooglePaymentRequest()
+                .transactionInfo(TransactionInfo.newBuilder()
+                        .setTotalPrice(amount) // format: 0.00
+                        .setTotalPriceStatus(WalletConstants.TOTAL_PRICE_STATUS_FINAL)
+                        .setCurrencyCode(currencyCode) // ISO 4217 currency code
+                        .build());
+
+        request.billingAddressRequired(billingAddressRequired);
+        //request.setAllowedCardNetworks(); TODO: pass down array of allowed card networks
+        //request.allowPrepaidCards(); TODO: add as parameter
+        //request.environment(); TODO: add as parameter (PRODUCTION or TEST)
+
+        if (googlePayMerchantId != null && googlePayMerchantId.length() > 0) {
+            // Optional in sandbox; if set in sandbox, this value must be a valid production Google Merchant ID
+            request.googleMerchantId(googlePayMerchantId);
+        }
+
+        GooglePayment.requestPayment(mBraintreeFragment, request);
+    }
+
+    private void googlePayNonceCallback(GooglePaymentCardNonce googlePayNonce) {
+        if (googlePayNonce == null || googlePayNonce.getNonce() == null) {
+            this.errorCallback.invoke("GooglePay nonce is null");
+            return;
+        }
+
+        WritableNativeMap map = new WritableNativeMap();
+        map.putString("nonce", googlePayNonce.getNonce());
+
+        if (googlePayNonce.getCardType() == null) {
+            this.errorCallback.invoke("GooglePay cardType is null");
+            return;
+        }
+        map.putString("cardType", googlePayNonce.getCardType());
+
+        if (googlePayNonce.getLastFour() != null) {
+            map.putString("lastFour", googlePayNonce.getLastFour());
+        }
+
+        if (googlePayNonce.getEmail() != null) {
+            map.putString("email", googlePayNonce.getEmail());
+        }
+
+        if (googlePayNonce.getBillingAddress() != null) {
+            map.putMap("billingAddress", getAddressMap(googlePayNonce.getBillingAddress()));
+        }
+
+        if (googlePayNonce.getShippingAddress() != null) {
+            map.putMap("shippingAddress", getAddressMap(googlePayNonce.getShippingAddress()));
+        }
+
+        this.successCallback.invoke(map);
+    }
+
+    @ReactMethod
     public void payPalRequestOneTimePayment(final String amount, final String currencyCode, final Callback successCallback, final Callback errorCallback) {
         PayPal.requestOneTimePayment(this.mBraintreeFragment, getPayPalRequest(amount, currencyCode, successCallback, errorCallback));
     }
@@ -205,11 +286,11 @@ public class Braintree extends ReactContextBaseJavaModule {
         map.putString("lastName", payPalAccountNonce.getLastName());
 
         if (payPalAccountNonce.getBillingAddress() != null) {
-            map.putMap("billingAddress", getPayPalAddressMap(payPalAccountNonce.getBillingAddress()));
+            map.putMap("billingAddress", getAddressMap(payPalAccountNonce.getBillingAddress()));
         }
 
         if (payPalAccountNonce.getShippingAddress() != null) {
-            map.putMap("shippingAddress", getPayPalAddressMap(payPalAccountNonce.getShippingAddress()));
+            map.putMap("shippingAddress", getAddressMap(payPalAccountNonce.getShippingAddress()));
         }
 
         this.successCallback.invoke(map);
@@ -242,7 +323,7 @@ public class Braintree extends ReactContextBaseJavaModule {
                 .intent(PayPalRequest.INTENT_AUTHORIZE);
     }
 
-    private WritableMap getPayPalAddressMap(PostalAddress address) {
+    private ReadableMap getAddressMap(PostalAddress address) {
         WritableNativeMap map = new WritableNativeMap();
         map.putString("recipientName", address.getRecipientName());
         map.putString("streetAddress", address.getStreetAddress());
@@ -253,6 +334,27 @@ public class Braintree extends ReactContextBaseJavaModule {
         map.putString("region", address.getRegion());
         return map;
     }
+
+    private ConfigurationListener mConfigurationListener = new ConfigurationListener() {
+        @Override
+        public void onConfigurationFetched(Configuration configuration) {
+            GooglePaymentConfiguration gPayConfig = configuration.getGooglePayment();
+            if (gPayConfig != null) {
+                // TODO remove all these logs before going live
+                Log.d(TAG, "GooglePay environment: " + gPayConfig.getEnvironment());
+                Log.d(TAG, "GooglePay display name: " + gPayConfig.getDisplayName());
+                Log.d(TAG, "GooglePay authorization fingerprint: " + gPayConfig.getGoogleAuthorizationFingerprint());
+                if (gPayConfig.getSupportedNetworks() != null) {
+                    for (String network : gPayConfig.getSupportedNetworks()) {
+                        Log.d(TAG, "GooglePay supported network: " + network);
+                    }
+                }
+            }
+            else {
+                Log.w(TAG, "GooglePay configuration is null");
+            }
+        }
+    };
 
     private BraintreeCancelListener mCancelListener = new BraintreeCancelListener() {
         @Override
@@ -266,6 +368,8 @@ public class Braintree extends ReactContextBaseJavaModule {
         public void onPaymentMethodNonceCreated(PaymentMethodNonce paymentMethodNonce) {
             if (paymentMethodNonce instanceof PayPalAccountNonce) {
                 payPalNonceCallback((PayPalAccountNonce)paymentMethodNonce);
+            } else if (paymentMethodNonce instanceof GooglePaymentCardNonce) {
+                googlePayNonceCallback((GooglePaymentCardNonce)paymentMethodNonce);
             } else {
                 nonceCallback(paymentMethodNonce.getNonce());
             }
