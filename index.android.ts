@@ -24,6 +24,7 @@ export type Address = {
   region: string | null, // state
 };
 
+export type VenmoNonce = string;
 export type DeviceData = string;
 
 class Braintree {
@@ -54,11 +55,11 @@ class Braintree {
     });
   }
 
-  getVenmoMultiUseAgreementNonce(profileId: string, shouldVault: boolean): Promise<PayPalSuccess> {
-    return new Promise((resolve: (result: PayPalSuccess) => void, reject: (reason: string | null) => void) => {
+  getVenmoMultiUseAgreementNonce(profileId: string, shouldVault: boolean): Promise<VenmoNonce> {
+    return new Promise((resolve: (result: VenmoNonce) => void, reject: (reason: string | null) => void) => {
       NativeBraintree.venmoRequestMultiUseAgreement(profileId,
         shouldVault,
-        (payPalSuccess: PayPalSuccess) => resolve(payPalSuccess),
+        (venmoNonce: VenmoNonce) => resolve(venmoNonce),
         (error: string) => reject(error)
       );
     });

@@ -264,6 +264,7 @@ public class Braintree extends ReactContextBaseJavaModule {
         this.venmoSuccessCallback = successCallback;
         this.venmoErrorCallback = errorCallback;
 
+        Log.d(TAG, "On venmoRequestMultiUseAgreement");
         final VenmoRequest request = new VenmoRequest(VenmoPaymentMethodUsage.MULTI_USE);
         if (!profileId.isEmpty()){
             request.setProfileId(profileId);
@@ -273,6 +274,7 @@ public class Braintree extends ReactContextBaseJavaModule {
         getCurrentActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, "On venmoRequestMultiUseAgreement 1");
                 tokenizeVenmoAccount(request);
             }
         });
@@ -280,8 +282,9 @@ public class Braintree extends ReactContextBaseJavaModule {
 
     private void tokenizeVenmoAccount(VenmoRequest request) {
         try{
+            Log.d(TAG, "Tokenize Venmo");
             AppCompatActivity activity = (AppCompatActivity) Objects.requireNonNull(getCurrentActivity());
-            VenmoClient tempClient = new VenmoClient(braintreeClient);
+            VenmoClient tempClient = new VenmoClient(this.braintreeClient);
 
             Field fieldBraintreeClient = tempClient.getClass().getDeclaredField("braintreeClient");
             fieldBraintreeClient.setAccessible(true);
@@ -292,9 +295,10 @@ public class Braintree extends ReactContextBaseJavaModule {
             fieldVenmoApi.setAccessible(true);
             Object venmoApi = fieldVenmoApi.get(tempClient);
             fieldVenmoApi.set(this.venmoClient, venmoApi);
-
+            Log.d(TAG, "Tokenize Venmo 1");  
             this.venmoClient.tokenizeVenmoAccount(activity, request);
         } catch (Exception error){
+             Log.d(TAG, "Tokenize Venmo Error 1");  
             invokeVenmoErrorCallback(error);
         }
     }
@@ -373,6 +377,7 @@ public class Braintree extends ReactContextBaseJavaModule {
     }
 
     private void invokeVenmoSuccessCallback(VenmoAccountNonce venmoAccountNonce) {
+        Log.d(TAG, "Venmo Success Callback is called");
         if (this.venmoSuccessCallback != null) {
             this.venmoSuccessCallback.invoke(venmoAccountNonce.getString());
         } else {
