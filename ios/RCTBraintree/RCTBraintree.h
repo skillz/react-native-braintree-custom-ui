@@ -11,10 +11,11 @@
 #import <React/RCTUtils.h>
 #import <React/RCTConvert.h>
 
-#import "BraintreeCore.h"
-#import "BraintreePayPal.h"
-#import "BraintreeCard.h"
-#import "BTDataCollector.h"
+@import BraintreeCore;
+@import BraintreePayPal;
+@import BraintreeCard;
+@import BraintreeVenmo;
+@import BraintreeDataCollector;
 
 @interface RCTBraintree : UIViewController <RCTBridgeModule, BTViewControllerPresentingDelegate>
 
